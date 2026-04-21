@@ -1,8 +1,8 @@
 import { IProduct } from '../../types/index';
 
 export class ProductsCatalog {
-    products: IProduct[] = [];
-    preview: IProduct | null = null;
+    private products: IProduct[] = [];
+    private preview: IProduct | null = null;
 
     setProducts(products: IProduct[]): void {
         this.products = products;

@@ -1,7 +1,7 @@
 import { IProduct } from '../../types/index';
 
 export class Basket {
-    items: IProduct[] = [];
+    private items: IProduct[] = [];
 
     getItems(): IProduct[] {
         return this.items;
@@ -20,7 +20,7 @@ export class Basket {
     }
 
     getTotal(): number {
-        return this.items.reduce((total, item) => total + (item.price || 0), 0);
+        return this.items.reduce((total, item) => total + (item.price ?? 0), 0);
     }
 
     getCount(): number {

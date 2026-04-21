@@ -3,8 +3,12 @@ import { ProductsCatalog } from './components/Models/ProductsCatalog';
 import { Basket } from './components/Models/Basket';
 import { Buyer } from './components/Models/Buyer';
 import { apiProducts } from './utils/data';
+// Работа с сервером
+import { Api } from './components/base/Api';
+import { WebLarekApi } from './components/Api/WebLarekApi';
+import { API_URL } from './utils/constants';
 
-// Тестирование моделей данных
+
 
 // ProductsCatalog
 const productsModel = new ProductsCatalog();
@@ -37,7 +41,7 @@ const buyerModel = new Buyer();
 buyerModel.setEmail('test@example.com');
 buyerModel.setPhone('1234567890');
 buyerModel.setAddress('Test Address');
-buyerModel.setPayment('card');
+buyerModel.setPayment('online');
 console.log('Данные покупателя:', buyerModel.getData());
 
 console.log('Валидация:', buyerModel.validate());
@@ -46,10 +50,6 @@ buyerModel.clear();
 console.log('После очистки:', buyerModel.getData());
 console.log('Валидация после очистки:', buyerModel.validate());
 
-// Работа с сервером
-import { Api } from './components/base/Api';
-import { WebLarekApi } from './components/Api/WebLarekApi';
-import { API_URL } from './utils/constants';
 
 const api = new Api(API_URL);
 const webLarekApi = new WebLarekApi(api);
