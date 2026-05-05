@@ -1,6 +1,8 @@
-export const apiProducts = {
-    "total": 10,
-    "items": [
+import { IProductsResponse } from '../types/index';
+
+export const apiProducts: IProductsResponse = {
+    total: 10,
+    items: [
         {
             "id": "854cef69-976d-4c2a-a18c-2aa45046c390",
             "description": "Если планируете решать задачи в тренажёре, берите два.",

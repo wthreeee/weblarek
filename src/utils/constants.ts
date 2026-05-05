@@ -1,3 +1,5 @@
+import { TCategory } from '../types/index';
+
 /* Константа для получения полного пути для сервера. Для выполнения запроса 
 необходимо к API_URL добавить только ендпоинт. */
 export const API_URL = `${import.meta.env.VITE_API_ORIGIN}/api/weblarek`; 
@@ -8,7 +10,7 @@ export const API_URL = `${import.meta.env.VITE_API_ORIGIN}/api/weblarek`;
 export const CDN_URL = `${import.meta.env.VITE_API_ORIGIN}/content/weblarek`;
 
 /* Константа соответствий категорий товара модификаторам, используемым для отображения фона категории. */
-export const categoryMap = {
+export const categoryMap: Record<TCategory, string> = {
   'софт-скил': 'card__category_soft',
   'хард-скил': 'card__category_hard',
   'кнопка': 'card__category_button',

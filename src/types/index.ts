@@ -7,6 +7,8 @@ export interface IApi {
 
 export type TPayment = 'online' | 'cash';
 
+export type TCategory = 'софт-скил' | 'хард-скил' | 'кнопка' | 'дополнительное' | 'другое';
+
 export type TBuyerErrors = Partial<Record<keyof IBuyer, string>>;
 
 export interface IProduct {
@@ -14,7 +16,7 @@ export interface IProduct {
     description: string;
     image: string;
     title: string;
-    category: string;
+    category: TCategory;
     price: number | null;
 }
 
