@@ -31,20 +31,51 @@ const modalView = new ModalView(ensureElement<HTMLElement>('.modal'), emitter);
 
 // Представления создаются однократно
 const basketView = new BasketView(cloneTemplate<HTMLElement>('#basket'), emitter);
-const previewView = new PreviewCardView(cloneTemplate<HTMLElement>('#card-preview'), emitter);
+const previewView = new PreviewCardView(cloneTemplate<HTMLElement>('#card-preview'), emitter, () => {
+  const product = productsModel.getPreview();
+  if (!product || product.price === null) {
+    return;
+  }
+
+  if (basketModel.hasItem(product.id)) {
+    basketModel.removeItem(product);
+  } else {
+    basketModel.addItem(product);
+  }
+});
 const orderFormView = new OrderFormView(cloneTemplate<HTMLElement>('#order'), emitter);
 const contactsFormView = new ContactsFormView(cloneTemplate<HTMLElement>('#contacts'), emitter);
 const successView = new OrderSuccessView(cloneTemplate<HTMLElement>('#success'), emitter);
 
-const renderCatalog = () => {
+const catalogCards: CatalogCardView[] = [];
+const buildImageUrl = (image: string): string => {
+  return image.startsWith('http') ? image : `${CDN_URL}/${image.replace(/^\/+/, '')}`;
+};
+
+const createCatalogCards = () => {
+  catalogCards.length = 0;
   const cards = productsModel.getProducts().map((product) => {
     const cardContainer = cloneTemplate<HTMLElement>('#card-catalog');
-    const card = new CatalogCardView(cardContainer, emitter);
+    const card = new CatalogCardView(cardContainer, emitter, () => {
+      productsModel.setPreview(product);
+    });
     card.render({ product, inBasket: basketModel.hasItem(product.id), disabled: product.price === null });
+    catalogCards.push(card);
     return cardContainer;
   });
 
   galleryView.render({ items: cards });
+};
+
+const renderCatalog = () => {
+  productsModel.getProducts().forEach((product, index) => {
+    const card = catalogCards[index];
+    if (!card) {
+      return;
+    }
+
+    card.render({ product, inBasket: basketModel.hasItem(product.id), disabled: product.price === null });
+  });
 };
 
 const renderHeader = () => {
@@ -102,7 +133,7 @@ const renderSuccess = () => {
 };
 
 emitter.on('catalog:products-set', () => {
-  renderCatalog();
+  createCatalogCards();
 });
 
 emitter.on('catalog:preview-set', () => {
@@ -173,7 +204,7 @@ emitter.on<{ phone: string }>('contacts:phone-change', ({ phone }) => {
   buyerModel.setPhone(phone);
 });
 
-emitter.on('form:submit', () => {
+emitter.on('order:submit', () => {
   const orderErrors = [buyerModel.validate().payment, buyerModel.validate().address].filter(Boolean) as string[];
   
   if (orderErrors.length > 0) {
@@ -186,7 +217,7 @@ emitter.on('form:submit', () => {
   modalView.isActive = true;
 });
 
-emitter.on('order:contacts-submit', () => {
+emitter.on('contacts:submit', () => {
   const contactErrors = [buyerModel.validate().email, buyerModel.validate().phone].filter(Boolean) as string[];
 
   if (contactErrors.length > 0) {
@@ -236,7 +267,7 @@ webLarekApi.getProducts()
   .then((data) => {
     const productsWithCDN = data.items.map((product) => ({
       ...product,
-      image: CDN_URL + '/' + product.image,
+      image: buildImageUrl(product.image),
     }));
     productsModel.setProducts(productsWithCDN);
   })

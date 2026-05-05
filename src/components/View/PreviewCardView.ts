@@ -8,21 +8,23 @@ import { ensureElement } from '../../utils/utils';
  */
 export class PreviewCardView extends CatalogPreviewCardView {
     protected _description: HTMLElement;
-    protected _inBasket: boolean = false;
-    protected _isDisabled: boolean = false;
+    protected _productId: string | null = null;
 
-    constructor(container: HTMLElement, events: IEvents) {
+    constructor(
+        container: HTMLElement,
+        events: IEvents,
+        protected onButtonClick?: () => void
+    ) {
         super(container, events);
 
         this._description = ensureElement<HTMLElement>('.card__text', container);
-        this._button.addEventListener('click', () => {
-            const product = this.getProduct();
-            if (product && !this._isDisabled) {
-                if (this._inBasket) {
-                    this.events.emit('product:remove-from-basket', { product });
-                } else {
-                    this.events.emit('product:add-to-basket', { product });
-                }
+        this._button?.addEventListener('click', () => {
+            if (!this._button || this._button.disabled || !this.onButtonClick) {
+                return;
+            }
+
+            if (this._productId) {
+                this.onButtonClick();
                 this.events.emit('modal:close');
             }
         });
@@ -34,15 +36,12 @@ export class PreviewCardView extends CatalogPreviewCardView {
     render(data?: Partial<ICardData & { inBasket: boolean; disabled: boolean }>): HTMLElement {
         super.render(data);
         if (data?.product) {
+            this._productId = data.product.id;
             this._description.textContent = data.product.description;
         }
-        if (data?.disabled !== undefined) {
-            this._isDisabled = data.disabled;
+        if (data?.disabled !== undefined || data?.inBasket !== undefined) {
+            this.setButtonState(data?.inBasket ?? false, data?.disabled ?? false);
         }
-        if (data?.inBasket !== undefined) {
-            this._inBasket = data.inBasket;
-        }
-        this.setButtonState(this._inBasket, this._isDisabled);
         return this.container;
     }
 }

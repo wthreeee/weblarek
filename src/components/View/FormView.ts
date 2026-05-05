@@ -24,7 +24,10 @@ export abstract class FormView extends Component<IFormData> {
 
         this._submit.addEventListener('click', (evt) => {
             evt.preventDefault();
-            this.events.emit('form:submit', {});
+            const formName = (container as HTMLFormElement).name;
+            if (formName) {
+                this.events.emit(`${formName}:submit`, {});
+            }
         });
     }
 
