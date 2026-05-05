@@ -1,35 +1,37 @@
-import { CardView, ICardData } from './CardView';
+import { CatalogPreviewCardView } from './CatalogPreviewCardView';
+import { ICardData } from './CardView';
 import { IEvents } from '../base/Events';
-import { ensureElement } from '../../utils/utils';
 
 /**
  * Класс для карточки товара в каталоге
  */
-export class CatalogCardView extends CardView {
-    protected _button: HTMLButtonElement;
+export class CatalogCardView extends CatalogPreviewCardView {
+    protected _inBasket: boolean = false;
+    protected _isDisabled: boolean = false;
 
     constructor(container: HTMLElement, events: IEvents) {
         super(container, events);
 
-        this._button = ensureElement<HTMLButtonElement>('.card__button', container);
         this._button.addEventListener('click', (event) => {
             event.stopPropagation();
-            this.events.emit('product:add-to-basket', { product: this.product });
+            const product = this.getProduct();
+            if (product && !this._isDisabled) {
+                if (this._inBasket) {
+                    this.events.emit('product:remove-from-basket', { product });
+                } else {
+                    this.events.emit('product:add-to-basket', { product });
+                }
+            }
         });
 
         this.container.addEventListener('click', (event) => {
             if (!(event.target as HTMLElement).closest('.card__button')) {
-                this.events.emit('product:select', { product: this.product });
+                const product = this.getProduct();
+                if (product) {
+                    this.events.emit('product:select', { product });
+                }
             }
         });
-    }
-
-    /**
-     * Установка состояния кнопки (добавлен в корзину или нет)
-     */
-    set inBasket(value: boolean) {
-        this._button.disabled = value;
-        this._button.textContent = value ? 'В корзине' : 'В корзину';
     }
 
     /**
@@ -37,16 +39,13 @@ export class CatalogCardView extends CardView {
      */
     render(data?: Partial<ICardData & { inBasket: boolean; disabled: boolean }>): HTMLElement {
         super.render(data);
+        if (data?.disabled !== undefined) {
+            this._isDisabled = data.disabled;
+        }
         if (data?.inBasket !== undefined) {
-            this.inBasket = data.inBasket;
+            this._inBasket = data.inBasket;
         }
-        if (data?.disabled) {
-            this._button.disabled = true;
-            this._button.textContent = 'Недоступно';
-        } else if (!data?.inBasket) {
-            this._button.disabled = false;
-            this._button.textContent = 'В корзину';
-        }
+        this.setButtonState(this._inBasket, this._isDisabled);
         return this.container;
     }
 }

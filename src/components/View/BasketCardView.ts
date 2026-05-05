@@ -9,13 +9,19 @@ export class BasketCardView extends CardView {
     protected _index: HTMLElement;
     protected _deleteButton: HTMLButtonElement;
 
-    constructor(container: HTMLElement, events: IEvents) {
+    constructor(
+        container: HTMLElement,
+        events: IEvents,
+        protected onDelete?: () => void
+    ) {
         super(container, events);
 
         this._index = ensureElement<HTMLElement>('.basket__item-index', container);
         this._deleteButton = ensureElement<HTMLButtonElement>('.basket__item-delete', container);
         this._deleteButton.addEventListener('click', () => {
-            this.events.emit('product:remove-from-basket', { product: this.product });
+            if (this.onDelete) {
+                this.onDelete();
+            }
         });
     }
 

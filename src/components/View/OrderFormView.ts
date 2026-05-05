@@ -26,8 +26,7 @@ export class OrderFormView extends FormView {
 
         this._paymentButtons.forEach(button => {
             button.addEventListener('click', () => {
-                this.payment = button.name as TPayment;
-                this.events.emit('order:payment-change', { payment: this.payment });
+                this.events.emit('order:payment-change', { payment: button.name as TPayment });
             });
         });
 

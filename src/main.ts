@@ -6,7 +6,7 @@ import { Basket } from './components/Models/Basket';
 import { Buyer } from './components/Models/Buyer';
 import { Api } from './components/base/Api';
 import { WebLarekApi } from './components/Api/WebLarekApi';
-import { API_URL } from './utils/constants';
+import { API_URL, CDN_URL } from './utils/constants';
 import { cloneTemplate, ensureElement } from './utils/utils';
 import { HeaderView } from './components/View/HeaderView';
 import { GalleryView } from './components/View/GalleryView';
@@ -29,12 +29,12 @@ const headerView = new HeaderView(ensureElement<HTMLElement>('.header'), emitter
 const galleryView = new GalleryView(ensureElement<HTMLElement>('.gallery'), emitter);
 const modalView = new ModalView(ensureElement<HTMLElement>('.modal'), emitter);
 
-let basketView: BasketView | null = null;
-let previewView: PreviewCardView | null = null;
-let orderFormView: OrderFormView | null = null;
-let contactsFormView: ContactsFormView | null = null;
-let successView: OrderSuccessView | null = null;
-let currentModalMode: 'preview' | 'basket' | 'order' | 'contacts' | 'success' | null = null;
+// Представления создаются однократно
+const basketView = new BasketView(cloneTemplate<HTMLElement>('#basket'), emitter);
+const previewView = new PreviewCardView(cloneTemplate<HTMLElement>('#card-preview'), emitter);
+const orderFormView = new OrderFormView(cloneTemplate<HTMLElement>('#order'), emitter);
+const contactsFormView = new ContactsFormView(cloneTemplate<HTMLElement>('#contacts'), emitter);
+const successView = new OrderSuccessView(cloneTemplate<HTMLElement>('#success'), emitter);
 
 const renderCatalog = () => {
   const cards = productsModel.getProducts().map((product) => {
@@ -57,74 +57,48 @@ const renderPreview = () => {
     return;
   }
 
-  previewView = new PreviewCardView(cloneTemplate<HTMLElement>('#card-preview'), emitter);
   previewView.render({ product, inBasket: basketModel.hasItem(product.id), disabled: product.price === null });
-
-  modalView.render({ content: previewView.render({ product, inBasket: basketModel.hasItem(product.id), disabled: product.price === null }) });
+  modalView.render({ content: previewView.container });
   modalView.isActive = true;
-  currentModalMode = 'preview';
 };
 
 const renderBasket = () => {
   const items = basketModel.getItems().map((product, index) => {
     const itemContainer = cloneTemplate<HTMLElement>('#card-basket');
-    const itemCard = new BasketCardView(itemContainer, emitter);
+    const itemCard = new BasketCardView(itemContainer, emitter, () => {
+      basketModel.removeItem(product);
+    });
     itemCard.render({ product, index: index + 1 });
     return itemContainer;
   });
 
-  basketView = new BasketView(cloneTemplate<HTMLElement>('#basket'), emitter);
   basketView.render({ items, total: basketModel.getTotal(), isEmpty: items.length === 0 });
-  modalView.render({ content: basketView.render({ items, total: basketModel.getTotal(), isEmpty: items.length === 0 }) });
-  modalView.isActive = true;
-  currentModalMode = 'basket';
 };
 
 const renderOrderForm = () => {
-  if (!orderFormView || currentModalMode !== 'order') {
-    orderFormView = new OrderFormView(cloneTemplate<HTMLElement>('#order'), emitter);
-  }
-
   const buyer = buyerModel.getData();
   const errors = buyerModel.validate();
-  const container = orderFormView.render({
+  orderFormView.render({
     valid: !errors.payment && !errors.address,
     errors: [errors.payment, errors.address].filter(Boolean) as string[],
     payment: buyer.payment ?? 'online',
     address: buyer.address,
   });
-
-  modalView.render({ content: container });
-  modalView.isActive = true;
-  currentModalMode = 'order';
 };
 
 const renderContactsForm = () => {
-  if (!contactsFormView || currentModalMode !== 'contacts') {
-    contactsFormView = new ContactsFormView(cloneTemplate<HTMLElement>('#contacts'), emitter);
-  }
-
   const buyer = buyerModel.getData();
   const errors = buyerModel.validate();
-  const container = contactsFormView.render({
+  contactsFormView.render({
     valid: !errors.email && !errors.phone,
     errors: [errors.email, errors.phone].filter(Boolean) as string[],
     email: buyer.email,
     phone: buyer.phone,
   });
-
-  modalView.render({ content: container });
-  modalView.isActive = true;
-  currentModalMode = 'contacts';
 };
 
 const renderSuccess = () => {
-  successView = new OrderSuccessView(cloneTemplate<HTMLElement>('#success'), emitter);
   successView.render({ total: basketModel.getTotal() });
-
-  modalView.render({ content: successView.render({ total: basketModel.getTotal() }) });
-  modalView.isActive = true;
-  currentModalMode = 'success';
 };
 
 emitter.on('catalog:products-set', () => {
@@ -138,36 +112,24 @@ emitter.on('catalog:preview-set', () => {
 emitter.on('basket:change', () => {
   renderHeader();
   renderCatalog();
-  if (currentModalMode === 'basket') {
-    renderBasket();
-  }
-  if (currentModalMode === 'preview') {
-    renderPreview();
-  }
+  renderBasket();
+  renderPreview();
 });
 
 emitter.on('buyer:payment-change', () => {
-  if (currentModalMode === 'order') {
-    renderOrderForm();
-  }
+  renderOrderForm();
 });
 
 emitter.on('buyer:address-change', () => {
-  if (currentModalMode === 'order') {
-    renderOrderForm();
-  }
+  renderOrderForm();
 });
 
 emitter.on('buyer:email-change', () => {
-  if (currentModalMode === 'contacts') {
-    renderContactsForm();
-  }
+  renderContactsForm();
 });
 
 emitter.on('buyer:phone-change', () => {
-  if (currentModalMode === 'contacts') {
-    renderContactsForm();
-  }
+  renderContactsForm();
 });
 
 emitter.on<{ product: IProduct }>('product:add-to-basket', ({ product }) => {
@@ -185,11 +147,14 @@ emitter.on<{ product: IProduct }>('product:select', ({ product }) => {
 });
 
 emitter.on('basket:open', () => {
-  renderBasket();
+  modalView.render({ content: basketView.container });
+  modalView.isActive = true;
 });
 
 emitter.on('order:start', () => {
   renderOrderForm();
+  modalView.render({ content: orderFormView.container });
+  modalView.isActive = true;
 });
 
 emitter.on<{ payment: 'online' | 'cash' }>('order:payment-change', ({ payment }) => {
@@ -209,62 +174,59 @@ emitter.on<{ phone: string }>('contacts:phone-change', ({ phone }) => {
 });
 
 emitter.on('form:submit', () => {
-  if (currentModalMode === 'order') {
-    const errors = buyerModel.validate();
-    const orderErrors = [errors.payment, errors.address].filter(Boolean) as string[];
+  const orderErrors = [buyerModel.validate().payment, buyerModel.validate().address].filter(Boolean) as string[];
+  
+  if (orderErrors.length > 0) {
+    renderOrderForm();
+    return;
+  }
 
-    if (orderErrors.length > 0) {
-      orderFormView?.render({ valid: false, errors: orderErrors });
-      return;
-    }
+  renderContactsForm();
+  modalView.render({ content: contactsFormView.container });
+  modalView.isActive = true;
+});
 
+emitter.on('order:contacts-submit', () => {
+  const contactErrors = [buyerModel.validate().email, buyerModel.validate().phone].filter(Boolean) as string[];
+
+  if (contactErrors.length > 0) {
     renderContactsForm();
     return;
   }
 
-  if (currentModalMode === 'contacts') {
-    const errors = buyerModel.validate();
-    const contactErrors = [errors.email, errors.phone].filter(Boolean) as string[];
+  const buyer = buyerModel.getData();
+  const items = basketModel.getItems();
+  const total = basketModel.getTotal();
 
-    if (contactErrors.length > 0) {
-      contactsFormView?.render({ valid: false, errors: contactErrors });
-      return;
-    }
+  const orderRequest = {
+    payment: buyer.payment as 'online' | 'cash',
+    email: buyer.email,
+    phone: buyer.phone,
+    address: buyer.address,
+    total,
+    items: items.map((item) => item.id),
+  };
 
-    const buyer = buyerModel.getData();
-    const items = basketModel.getItems();
-    const total = basketModel.getTotal();
-
-    const orderRequest = {
-      payment: buyer.payment as 'online' | 'cash',
-      email: buyer.email,
-      phone: buyer.phone,
-      address: buyer.address,
-      total,
-      items: items.map((item) => item.id),
-    };
-
-    webLarekApi
-      .createOrder(orderRequest)
-      .then(() => {
-        renderSuccess();
-        basketModel.clear();
-        buyerModel.clear();
-      })
-      .catch((err) => {
-        console.error('Ошибка отправки заказа:', err);
-      });
-  }
+  webLarekApi
+    .createOrder(orderRequest)
+    .then(() => {
+      renderSuccess();
+      modalView.render({ content: successView.container });
+      modalView.isActive = true;
+      basketModel.clear();
+      buyerModel.clear();
+    })
+    .catch((err) => {
+      console.error('Ошибка отправки заказа:', err);
+    });
 });
 
 emitter.on('modal:close', () => {
   modalView.isActive = false;
-  currentModalMode = null;
 });
 
 emitter.on('order:success-close', () => {
   modalView.isActive = false;
-  currentModalMode = null;
 });
 
 const api = new Api(API_URL);
@@ -272,7 +234,11 @@ const webLarekApi = new WebLarekApi(api);
 
 webLarekApi.getProducts()
   .then((data) => {
-    productsModel.setProducts(data.items);
+    const productsWithCDN = data.items.map((product) => ({
+      ...product,
+      image: CDN_URL + '/' + product.image,
+    }));
+    productsModel.setProducts(productsWithCDN);
   })
   .catch(() => {
     // Handle error silently or show user-friendly message

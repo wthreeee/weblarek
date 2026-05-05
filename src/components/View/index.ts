@@ -1,4 +1,5 @@
 export { CardView, ICardData } from './CardView';
+export { CatalogPreviewCardView } from './CatalogPreviewCardView';
 export { CatalogCardView } from './CatalogCardView';
 export { BasketCardView } from './BasketCardView';
 export { PreviewCardView } from './PreviewCardView';
@@ -6,7 +7,6 @@ export { FormView, IFormData } from './FormView';
 export { OrderFormView, IOrderFormData } from './OrderFormView';
 export { ContactsFormView, IContactsFormData } from './ContactsFormView';
 export { ModalView, IModalData } from './ModalView';
-export { PageView, IPageData } from './PageView';
 export { HeaderView, IHeaderData } from './HeaderView';
 export { GalleryView, IGalleryData } from './GalleryView';
 export { BasketView, IBasketData } from './BasketView';
