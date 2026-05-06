@@ -8,7 +8,6 @@ import { ensureElement } from '../../utils/utils';
  */
 export class PreviewCardView extends CatalogPreviewCardView {
     protected _description: HTMLElement;
-    protected _product: any;
 
     constructor(
         container: HTMLElement,
@@ -19,12 +18,15 @@ export class PreviewCardView extends CatalogPreviewCardView {
 
         this._description = ensureElement<HTMLElement>('.card__text', container);
         this._button?.addEventListener('click', () => {
-            if (!this._button || this._button.disabled || !this.onButtonClick || !this._product) {
+            if (!this._button || this._button.disabled || !this.onButtonClick) {
                 return;
             }
 
-            this.onButtonClick(this._product.id);
-            this.events.emit('modal:close');
+            const productId = this._button.getAttribute('data-product-id');
+            if (productId) {
+                this.onButtonClick(productId);
+                this.events.emit('modal:close');
+            }
         });
     }
 
@@ -34,7 +36,7 @@ export class PreviewCardView extends CatalogPreviewCardView {
     render(data?: Partial<ICardData & { inBasket: boolean; disabled: boolean }>): HTMLElement {
         super.render(data);
         if (data?.product) {
-            this._product = data.product;
+            this._button?.setAttribute('data-product-id', data.product.id);
             this._description.textContent = data.product.description;
         }
         if (data?.disabled !== undefined || data?.inBasket !== undefined) {
