@@ -31,8 +31,8 @@ const modalView = new ModalView(ensureElement<HTMLElement>('.modal'), emitter);
 
 // Представления создаются однократно
 const basketView = new BasketView(cloneTemplate<HTMLElement>('#basket'), emitter);
-const previewView = new PreviewCardView(cloneTemplate<HTMLElement>('#card-preview'), emitter, () => {
-  const product = productsModel.getPreview();
+const previewView = new PreviewCardView(cloneTemplate<HTMLElement>('#card-preview'), emitter, (productId: string) => {
+  const product = productsModel.getProductById(productId);
   if (!product || product.price === null) {
     return;
   }
@@ -88,8 +88,8 @@ const renderPreview = () => {
     return;
   }
 
-  previewView.render({ product, inBasket: basketModel.hasItem(product.id), disabled: product.price === null });
-  modalView.render({ content: previewView.container });
+  const previewContainer = previewView.render({ product, inBasket: basketModel.hasItem(product.id), disabled: product.price === null });
+  modalView.render({ content: previewContainer });
   modalView.isActive = true;
 };
 
@@ -178,13 +178,13 @@ emitter.on<{ product: IProduct }>('product:select', ({ product }) => {
 });
 
 emitter.on('basket:open', () => {
-  modalView.render({ content: basketView.container });
+  modalView.render({ content: basketView.render() });
   modalView.isActive = true;
 });
 
 emitter.on('order:start', () => {
   renderOrderForm();
-  modalView.render({ content: orderFormView.container });
+  modalView.render({ content: orderFormView.render() });
   modalView.isActive = true;
 });
 
@@ -205,26 +205,12 @@ emitter.on<{ phone: string }>('contacts:phone-change', ({ phone }) => {
 });
 
 emitter.on('order:submit', () => {
-  const orderErrors = [buyerModel.validate().payment, buyerModel.validate().address].filter(Boolean) as string[];
-  
-  if (orderErrors.length > 0) {
-    renderOrderForm();
-    return;
-  }
-
   renderContactsForm();
-  modalView.render({ content: contactsFormView.container });
+  modalView.render({ content: contactsFormView.render() });
   modalView.isActive = true;
 });
 
 emitter.on('contacts:submit', () => {
-  const contactErrors = [buyerModel.validate().email, buyerModel.validate().phone].filter(Boolean) as string[];
-
-  if (contactErrors.length > 0) {
-    renderContactsForm();
-    return;
-  }
-
   const buyer = buyerModel.getData();
   const items = basketModel.getItems();
   const total = basketModel.getTotal();
@@ -242,7 +228,7 @@ emitter.on('contacts:submit', () => {
     .createOrder(orderRequest)
     .then(() => {
       renderSuccess();
-      modalView.render({ content: successView.container });
+      modalView.render({ content: successView.render() });
       modalView.isActive = true;
       basketModel.clear();
       buyerModel.clear();

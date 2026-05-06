@@ -8,25 +8,23 @@ import { ensureElement } from '../../utils/utils';
  */
 export class PreviewCardView extends CatalogPreviewCardView {
     protected _description: HTMLElement;
-    protected _productId: string | null = null;
+    protected _product: any;
 
     constructor(
         container: HTMLElement,
         events: IEvents,
-        protected onButtonClick?: () => void
+        protected onButtonClick?: (productId: string) => void
     ) {
         super(container, events);
 
         this._description = ensureElement<HTMLElement>('.card__text', container);
         this._button?.addEventListener('click', () => {
-            if (!this._button || this._button.disabled || !this.onButtonClick) {
+            if (!this._button || this._button.disabled || !this.onButtonClick || !this._product) {
                 return;
             }
 
-            if (this._productId) {
-                this.onButtonClick();
-                this.events.emit('modal:close');
-            }
+            this.onButtonClick(this._product.id);
+            this.events.emit('modal:close');
         });
     }
 
@@ -36,7 +34,7 @@ export class PreviewCardView extends CatalogPreviewCardView {
     render(data?: Partial<ICardData & { inBasket: boolean; disabled: boolean }>): HTMLElement {
         super.render(data);
         if (data?.product) {
-            this._productId = data.product.id;
+            this._product = data.product;
             this._description.textContent = data.product.description;
         }
         if (data?.disabled !== undefined || data?.inBasket !== undefined) {
